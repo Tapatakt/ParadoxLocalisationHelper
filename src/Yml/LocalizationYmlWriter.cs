@@ -1,7 +1,6 @@
 using System.Text;
-using ParadoxLocalisationHelper.Analysis.Models;
-using ParadoxLocalisationHelper.Comparison.Models;
 using ParadoxLocalisationHelper.Models;
+using ParadoxLocalisationHelper.Storage;
 
 namespace ParadoxLocalisationHelper.Yml;
 
@@ -11,119 +10,42 @@ namespace ParadoxLocalisationHelper.Yml;
 public sealed class LocalizationYmlWriter
 {
     /// <summary>
-    /// Writes delta entries (added and modified keys) to multiple YML files in a directory.
-    /// Files are created based on the structure of the new version.
+    /// Writes keys from storage to YML files using template structure.
     /// </summary>
-    /// <param name="result">The comparison result.</param>
-    /// <param name="outputDirectory">The output directory path.</param>
-    /// <param name="language">The language code.</param>
-    /// <param name="newVersionFiles">The new version files to use as template.</param>
-    /// <returns>List of information about written files.</returns>
-    public List<WrittenFileInfo> WriteDeltaYmlFiles(
-        ComparisonResult result,
+    public List<WrittenFileInfo> WriteStorage(
+        LocalizationStorage storage,
         string outputDirectory,
-        string language,
-        IEnumerable<LocalizationFile> newVersionFiles)
+        string language)
     {
-        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(storage);
         ArgumentException.ThrowIfNullOrEmpty(outputDirectory);
         ArgumentException.ThrowIfNullOrEmpty(language);
-        ArgumentNullException.ThrowIfNull(newVersionFiles);
 
         if (!Directory.Exists(outputDirectory))
             Directory.CreateDirectory(outputDirectory);
 
         List<WrittenFileInfo> writtenFiles = [];
-        Dictionary<string, KeyWithSource> addedByKey = result.Added.ToDictionary(k => k.Key);
-        Dictionary<string, Modification> modifiedByKey = result.Modified.ToDictionary(m => m.Key);
 
-        foreach (LocalizationFile newFile in newVersionFiles)
+        foreach ((string filePath, LocalizationFile file) in storage.Files)
         {
-            List<LocalizationEntry> entriesToWrite = [];
-
-            foreach (LocalizationEntry entry in newFile.Entries)
-            {
-                if (addedByKey.TryGetValue(entry.Key, out KeyWithSource? added))
-                {
-                    entriesToWrite.Add(new(entry.Key, entry.Version, added.Value, added.Value, entry.LineNumber));
-                }
-                else if (modifiedByKey.TryGetValue(entry.Key, out Modification? modified))
-                {
-                    entriesToWrite.Add(new(entry.Key, entry.Version, modified.NewValue, modified.NewValue, entry.LineNumber));
-                }
-            }
-
-            if (entriesToWrite.Count == 0)
+            if (file.Entries.Count == 0)
                 continue;
 
-            string outputFileName = newFile.FileName.Replace($"l_{newFile.Language}", $"l_{language}");
+            string outputFileName = Path.GetFileName(filePath).Replace($"l_{file.Language}", $"l_{language}");
             string outputPath = Path.Combine(outputDirectory, outputFileName);
-            LocalizationFile outputFile = new(language, outputPath, entriesToWrite);
+            LocalizationFile outputFile = new(language, outputPath, file.Entries);
             WriteFile(outputFile, outputPath);
 
-            int charCount = entriesToWrite.Sum(e => e.Value.Length);
-            writtenFiles.Add(new(outputPath, entriesToWrite.Count, charCount));
+            int charCount = file.Entries.Sum(e => e.Value.Length);
+            writtenFiles.Add(new(outputPath, file.Entries.Count, charCount));
         }
 
         return writtenFiles;
     }
 
     /// <summary>
-    /// Writes missing keys to multiple YML files in a directory.
-    /// Files are created based on the structure of the new version.
+    /// Writes multiple files to a directory.
     /// </summary>
-    /// <param name="result">The missing keys result.</param>
-    /// <param name="outputDirectory">The output directory path.</param>
-    /// <param name="language">The language code.</param>
-    /// <param name="newVersionFiles">The new version files to use as template.</param>
-    /// <returns>List of information about written files.</returns>
-    public List<WrittenFileInfo> WriteMissingKeysYmlFiles(
-        MissingKeysResult result,
-        string outputDirectory,
-        string language,
-        IEnumerable<LocalizationFile> newVersionFiles)
-    {
-        ArgumentNullException.ThrowIfNull(result);
-        ArgumentException.ThrowIfNullOrEmpty(outputDirectory);
-        ArgumentException.ThrowIfNullOrEmpty(language);
-        ArgumentNullException.ThrowIfNull(newVersionFiles);
-
-        if (!Directory.Exists(outputDirectory))
-            Directory.CreateDirectory(outputDirectory);
-
-        List<WrittenFileInfo> writtenFiles = [];
-        Dictionary<string, MissingKeyInfo> missingByKey = result.MissingKeys.ToDictionary(k => k.Key);
-
-        foreach (LocalizationFile newFile in newVersionFiles)
-        {
-            List<LocalizationEntry> entriesToWrite = [];
-
-            foreach (LocalizationEntry entry in newFile.Entries)
-            {
-                if (missingByKey.TryGetValue(entry.Key, out MissingKeyInfo? missing))
-                    entriesToWrite.Add(new(entry.Key, entry.Version, missing.SourceValue, missing.SourceValue, entry.LineNumber));
-            }
-
-            if (entriesToWrite.Count == 0)
-                continue;
-
-            string outputFileName = newFile.FileName.Replace($"l_{newFile.Language}", $"l_{language}");
-            string outputPath = Path.Combine(outputDirectory, outputFileName);
-            LocalizationFile outputFile = new(language, outputPath, entriesToWrite);
-            WriteFile(outputFile, outputPath);
-
-            int charCount = entriesToWrite.Sum(e => e.Value.Length);
-            writtenFiles.Add(new(outputPath, entriesToWrite.Count, charCount));
-        }
-
-        return writtenFiles;
-    }
-
-    /// <summary>
-    /// Writes a collection of localization files to an output directory.
-    /// </summary>
-    /// <param name="files">The files to write.</param>
-    /// <param name="outputDirectory">The output directory.</param>
     public void WriteFiles(IEnumerable<LocalizationFile> files, string outputDirectory)
     {
         ArgumentNullException.ThrowIfNull(files);
@@ -142,8 +64,6 @@ public sealed class LocalizationYmlWriter
     /// <summary>
     /// Writes a single localization file.
     /// </summary>
-    /// <param name="file">The file to write.</param>
-    /// <param name="outputPath">The output path.</param>
     public void WriteFile(LocalizationFile file, string outputPath)
     {
         ArgumentNullException.ThrowIfNull(file);
@@ -155,9 +75,9 @@ public sealed class LocalizationYmlWriter
 
         foreach (LocalizationEntry entry in file.Entries)
         {
-            string versionSuffix = entry.Version.HasValue ? $":{entry.Version.Value}" : "";
+            string suffix = entry.Version.HasValue ? $":{entry.Version.Value}" : ":";
             string escapedValue = EscapeValue(entry.Value);
-            sb.AppendLine($" {entry.Key}{versionSuffix}: \"{escapedValue}\"");
+            sb.AppendLine($" {entry.Key}{suffix} \"{escapedValue}\"");
         }
 
         File.WriteAllText(outputPath, sb.ToString(), Encoding.UTF8);

@@ -1,58 +1,10 @@
-using ParadoxLocalisationHelper.Models;
-
 namespace ParadoxLocalisationHelper.Cli;
 
 /// <summary>
-/// Provides interactive console menu functionality.
+/// Provides static helper methods for console UI interactions.
 /// </summary>
-public sealed class ConsoleMenuService
+public static class ConsoleMenuService
 {
-    private readonly AppState _state;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConsoleMenuService"/> class.
-    /// </summary>
-    /// <param name="state">The application state.</param>
-    public ConsoleMenuService(AppState state)
-    {
-        ArgumentNullException.ThrowIfNull(state);
-        _state = state;
-    }
-
-    /// <summary>
-    /// Displays the main menu and returns the user's choice.
-    /// </summary>
-    /// <returns>The selected menu option number, or 0 to exit.</returns>
-    public int ShowMainMenu()
-    {
-        Console.Clear();
-        Console.WriteLine("=== Paradox Localisation Helper ===");
-        Console.WriteLine();
-        Console.WriteLine("Current Settings:");
-        Console.WriteLine($"  [1] New version folder:     {FormatPath(_state.NewVersionPath)}");
-        Console.WriteLine($"  [2] Old version folder:     {FormatPath(_state.OldVersionPath)}");
-        Console.WriteLine($"  [3] Outdated translation:   {FormatPath(_state.OldTranslationPath)}");
-        Console.WriteLine($"  [4] Translation update:     {FormatPath(_state.NewTranslationPath)}");
-        Console.WriteLine($"  [5] Source language:        {_state.SourceLanguage}");
-        Console.WriteLine($"  [6] Target language:        {_state.TargetLanguage}");
-        Console.WriteLine();
-        Console.WriteLine("Actions:");
-        Console.WriteLine("  [7] Generate delta report (old vs new version) + YML");
-        Console.WriteLine("  [8] Generate missing keys report (outdated translation vs new version)");
-        Console.WriteLine("  [9] Merge outdated translation with update");
-        Console.WriteLine(" [10] Generate translation work report (missing + modified keys)");
-        Console.WriteLine();
-        Console.WriteLine("  [0] Exit");
-        Console.WriteLine();
-        Console.Write("Select option: ");
-
-        string? input = Console.ReadLine();
-        if (int.TryParse(input, out int choice))
-            return choice;
-
-        return -1;
-    }
-
     /// <summary>
     /// Prompts the user to enter a folder path.
     /// </summary>
@@ -63,22 +15,22 @@ public sealed class ConsoleMenuService
         while (true)
         {
             Console.WriteLine();
-            Console.WriteLine($"Enter {prompt} (or 'cancel' to go back):");
+            Console.WriteLine($"Введите {prompt} (или 'cancel'/'отмена' для возврата):");
             Console.Write("> ");
             string? input = Console.ReadLine()?.Trim();
 
             if (string.IsNullOrEmpty(input))
             {
-                Console.WriteLine("Path cannot be empty. Try again.");
+                Console.WriteLine("Путь не может быть пустым. Попробуйте ещё раз.");
                 continue;
             }
 
-            if (input.Equals("cancel", StringComparison.OrdinalIgnoreCase))
+            if (input.Equals("cancel", StringComparison.OrdinalIgnoreCase) || input.Equals("отмена", StringComparison.OrdinalIgnoreCase))
                 return string.Empty;
 
             if (!Directory.Exists(input))
             {
-                Console.WriteLine($"Directory not found: '{input}'. Try again.");
+                Console.WriteLine($"Папка не найдена: '{input}'. Попробуйте ещё раз.");
                 continue;
             }
 
@@ -94,7 +46,7 @@ public sealed class ConsoleMenuService
     public static string ReadLanguage(string currentValue)
     {
         Console.WriteLine();
-        Console.WriteLine($"Enter language code (current: {currentValue}):");
+        Console.WriteLine($"Введите код языка (текущий: {currentValue}):");
         Console.Write("> ");
         string? input = Console.ReadLine()?.Trim();
 
@@ -110,19 +62,19 @@ public sealed class ConsoleMenuService
         while (true)
         {
             Console.WriteLine();
-            Console.WriteLine("Enter name for the output folder:");
+            Console.WriteLine("Введите имя для выходной папки:");
             Console.Write("> ");
             string? input = Console.ReadLine()?.Trim();
 
             if (string.IsNullOrEmpty(input))
             {
-                Console.WriteLine("Name cannot be empty. Try again.");
+                Console.WriteLine("Имя не может быть пустым. Попробуйте ещё раз.");
                 continue;
             }
 
             if (input.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             {
-                Console.WriteLine("Name contains invalid characters. Try again.");
+                Console.WriteLine("Имя содержит недопустимые символы. Попробуйте ещё раз.");
                 continue;
             }
 
@@ -136,7 +88,7 @@ public sealed class ConsoleMenuService
     public static void WaitForKey()
     {
         Console.WriteLine();
-        Console.WriteLine("Press any key to continue...");
+        Console.WriteLine("Нажмите любую клавишу для продолжения...");
         Console.ReadKey(true);
     }
 
@@ -148,7 +100,7 @@ public sealed class ConsoleMenuService
     {
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"Error: {message}");
+        Console.WriteLine($"Ошибка: {message}");
         Console.ResetColor();
     }
 
@@ -173,7 +125,4 @@ public sealed class ConsoleMenuService
         Console.WriteLine();
         Console.WriteLine(message);
     }
-
-    private static string FormatPath(string path) =>
-        string.IsNullOrEmpty(path) ? "(not set)" : $"'{path}'";
 }

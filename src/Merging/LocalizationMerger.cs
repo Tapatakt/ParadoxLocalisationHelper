@@ -80,11 +80,11 @@ public sealed class LocalizationMerger
         LocalizationStorage newTranslation)
     {
         // Priority: new translation > old translation
-        LocalizationEntry? newEntry = newTranslation.GetEntry(key);
+        LocalizationEntry? newEntry = newTranslation[key];
         if (newEntry is not null)
             return new(key, version, newEntry.Value, newEntry.RawValue, newEntry.LineNumber);
 
-        LocalizationEntry? oldEntry = oldTranslation.GetEntry(key);
+        LocalizationEntry? oldEntry = oldTranslation[key];
         if (oldEntry is not null)
             return new(key, version, oldEntry.Value, oldEntry.RawValue, oldEntry.LineNumber);
 

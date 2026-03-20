@@ -63,22 +63,24 @@ ParadoxLocalisationHelper.exe
 
 ```
 === Paradox Localisation Helper ===
+      Помощник локализации Paradox
 
-Current Settings:
-  [1] New version folder:     (not set)
-  [2] Old version folder:     (not set)
-  [3] Outdated translation:   (not set)
-  [4] Translation update:     (not set)
-  [5] Source language:        english
-  [6] Target language:        russian
+Текущие настройки:
+  [1] Новая версия (оригинал):     (не задан)
+  [2] Старая версия (оригинал):    (не задан)
+  [3] Устаревший перевод:          (не задан)
+  [4] Обновление перевода:         (не задан)
+  [5] Язык оригинала:              l_english
+  [6] Язык перевода:               l_russian
 
-Actions:
-  [7] Generate delta report (old vs new version) + YML files
-  [8] Generate missing keys report (outdated translation vs new version) + YML files
-  [9] Merge outdated translation with update
- [10] Generate translation work report (missing + modified keys) + YML files
+Действия:
+  [7] Сгенерировать отчёт
+       (анализ изменений и прогресса перевода, с YML для оставшейся работы)
 
-  [0] Exit
+ [10] Объединить переводы
+       (слияние устаревшего перевода с обновлением)
+
+  [0] Выход
 ```
 
 ### Сохранение настроек
@@ -87,44 +89,39 @@ Actions:
 
 ### Настройка путей
 
-1. **New version folder** — папка с новой версией мода (оригинальный язык)
-2. **Old version folder** — папка со старой версией мода (оригинальный язык)
-3. **Outdated translation** — папка с устаревшим переводом
-4. **Translation update** — папка с обновлением перевода (частичным)
+1. **Новая версия (оригинал)** — папка с новой версией мода (оригинальный язык)
+2. **Старая версия (оригинал)** — папка со старой версией мода (оригинальный язык)
+3. **Устаревший перевод** — папка с устаревшим переводом
+4. **Обновление перевода** — папка с обновлением перевода (частичным, только новые/изменённые ключи)
 
-### Генерация отчёта по дельте (пункт 7)
+### Генерация отчёта (пункт 7)
 
-Сравнивает старую и новую версии на оригинальном языке. Создаёт:
-- Markdown-отчёт со статистикой по ключам и символам
-- Папку с YML-файлами, содержащими недостающие и изменённые ключи (структура файлов как в новой версии)
+Единый отчёт, анализирующий все доступные данные:
 
-Отчёт включает:
-- Количество добавленных/удалённых/изменённых ключей
-- Количество символов в добавленных/удалённых/изменённых значениях
-- Список созданных YML-файлов с указанием количества ключей и символов в каждом
+**Изменения между версиями:**
+- Ключи, добавленные в новой версии
+- Ключи, удалённые из старой версии
+- Ключи, изменённые между версиями
 
-### Генерация отчёта по недостаче (пункт 8)
+**Работа по переводу:**
+- Новые ключи (добавленные в новой версии)
+- Изменённые ключи (значения изменились)
+- Ключи, недостающие в устаревшем переводе
+- **Work to do** — всё, что нужно перевести
+- **Work done** — что уже есть в обновлении перевода
+- **Work remaining** — что осталось сделать
 
-Сравнивает устаревший перевод с новой версией. Показывает:
-- Статистику по ключам (всего/переведено/недостаёт)
-- Статистику по символам (всего/переведено/недостаёт)
-- Процент готовности по символам
-- Папку с YML-файлами, содержащими недостающие ключи (структура файлов как в новой версии)
+**Проверка качества:**
+- **Duplicate Keys** — дубликаты в обновлении и устаревшем переводе
+- **Unnecessary Keys** — ключи в обновлении, которых нет в новой версии
 
-### Отчёт по работе переводчика (пункт 10)
+**Выходные данные:**
+- Markdown-отчёт с одной большой таблицей по всем файлам
+- Пофайловая статистика (ключи/символы) для каждой категории
+- Строка **Total** с суммами внизу таблицы
+- Папка с YML-файлами, содержащими оставшуюся работу (если есть)
 
-Комплексный отчёт, объединяющий:
-- **Новые ключи** — добавлены в новой версии (не было в старой)
-- **Изменённые ключи** — значения изменились между старой и новой версией
-- **Недостающие ключи** — есть в новой версии, но отсутствуют в устаревшем переводе
-
-Создаёт:
-- Markdown-отчёт с полной сводкой по всем категориям
-- Папку с YML-файлами, содержащими все ключи, требующие работы
-
-Требует установки всех трёх путей: старая версия, новая версия, устаревший перевод.
-
-### Слияние переводов (пункт 9)
+### Слияние переводов (пункт 10)
 
 Объединяет устаревший перевод с обновлением:
 - Значения из обновления замещают старые
@@ -135,35 +132,33 @@ Actions:
 
 ## Типичный workflow
 
-### Сценарий 1: Обновление мода с новой версией
+### Сценарий 1: Анализ изменений
 
 ```
 1. Установите путь к новой версии (пункт 1)
 2. Установите путь к старой версии (пункт 2)
-3. Сгенерируйте дельту (пункт 7)
-4. Переведите ключи из YML-файлов в папке delta_yml_*
-5. Установите путь к устаревшему переводу (пункт 3)
-6. Установите путь к вашему переводу обновления (пункт 4)
-7. Выполните слияние (пункт 9)
+3. Сгенерируйте отчёт (пункт 7)
+→ Увидите все изменения между версиями
 ```
 
-### Сценарий 2: Проверка завершённости перевода
+### Сценарий 2: Проверка прогресса перевода
 
 ```
 1. Установите путь к новой версии (пункт 1)
-2. Установите путь к текущему переводу (пункт 3)
-3. Сгенерируйте отчёт по недостаче (пункт 8)
-4. Проверьте процент готовности по символам
+2. Установите путь к устаревшему переводу (пункт 3)
+3. Установите путь к обновлению перевода (пункт 4)
+4. Сгенерируйте отчёт (пункт 7)
+→ Увидите что сделано и что осталось
 ```
 
-### Сценарий 3: Полный отчёт по работе переводчика
+### Сценарий 3: Полный анализ
 
 ```
-1. Установите путь к старой версии (пункт 2)
-2. Установите путь к новой версии (пункт 1)
-3. Установите путь к устаревшему переводу (пункт 3)
-4. Сгенерируйте отчёт по работе (пункт 10)
-5. Получите полный список: новые + изменённые + недостающие ключи
+1. Установите все 4 пути (пункты 1-4)
+2. Сгенерируйте отчёт (пункт 7)
+→ Полная картина: изменения версий, прогресс перевода, дубликаты, лишние ключи
+3. Получите YML с оставшейся работой
+4. Выполните слияние (пункт 10) когда перевод готов
 ```
 
 ---
@@ -184,6 +179,7 @@ AppState
 LocalizationFile
 ├── Language: string
 ├── FilePath: string
+├── FileName: string
 └── Entries: List<LocalizationEntry>
 
 LocalizationEntry
@@ -192,98 +188,114 @@ LocalizationEntry
 ├── Value: string
 ├── RawValue: string
 └── LineNumber: int
-
-WrittenFileInfo
-├── FilePath: string
-├── FileName: string
-├── KeyCount: int
-└── CharacterCount: int
 ```
 
-### Компоненты системы
+### LocalizationStorage — центральный компонент
 
-#### 1. Configuration (`ConfigurationService`)
+Хранилище загруженных локализаций с операциями над множествами:
+
+**Свойства:**
+- `Name: string` — имя хранилища (для отображения)
+- `KeyCount: int` — количество ключей
+- `FileCount: int` — количество файлов
+- `IsEmpty: bool` — пустое ли хранилище
+- `Entries: IReadOnlyDictionary<string, LocalizationEntry>`
+- `Files: IReadOnlyDictionary<string, LocalizationFile>`
+
+**Методы загрузки:**
+- `AddFile(LocalizationFile file)`
+- `AddFiles(IEnumerable<LocalizationFile> files)`
+
+**Операции над множествами:**
+- `Except(LocalizationStorage other)` — ключи, которые есть в this, но нет в other
+- `Modified(LocalizationStorage other)` — ключи с разными значениями в обоих
+- `Unchanged(LocalizationStorage other)` — ключи с одинаковыми значениями
+- `Union(LocalizationStorage other)` — объединение (this приоритетнее)
+- `Intersect(LocalizationStorage other)` — пересечение
+
+**Утилиты:**
+- `SetName(string name)` — установить имя (fluent API)
+- `Describe()` — вывести в консоль и вернуть this
+- `ContainsKey(string key)` — проверка наличия ключа
+- `TryGetEntry(string key, out LocalizationEntry? entry)` — получить запись
+- `GetAllKeys()` — все ключи
+- `GetSourceFile(string key)` — файл, содержащий ключ
+- `GetFileStats(string filePath)` — статистика по файлу (ключи, символы)
+
+**Пример цепочки операций:**
+```csharp
+LocalizationStorage workToDo = addedKeys
+    .Union(modifiedKeys)
+    .Union(missingInOldTranslation)
+    .SetName("Work To Do")
+    .Describe();
+```
+
+### ReportGenerator
+
+Генератор отчётов с анализом данных.
+
+**Входные данные (инициализация):**
+```csharp
+ReportGenerator generator = new()
+{
+    OldVersion = oldVersion,           // старая версия оригинала
+    NewVersion = newVersion,           // новая версия оригинала
+    OldTranslation = oldTranslation,   // устаревший перевод
+    TranslationUpdate = translationUpdate // обновление перевода
+};
+```
+
+**Вычисляемые данные (после Analyze):**
+- `AddedKeys` — ключи, добавленные в новой версии
+- `RemovedKeys` — ключи, удалённые из старой версии
+- `ModifiedKeys` — ключи с изменёнными значениями
+- `MissingInOldTranslation` — ключи, недостающие в старом переводе
+- `WorkToDo` — всё, что нужно перевести
+- `WorkDone` — что уже сделано в обновлении
+- `WorkRemaining` — что осталось сделать
+- `UnnecessaryKeys` — ключи в обновлении, которых нет в новой версии
+
+**Методы:**
+- `Generate()` — выполняет анализ, выводит сводку, генерирует отчёт
+
+### Другие компоненты
+
+#### Configuration (`ConfigurationService`)
 Управление сохранением и загрузкой настроек.
 
 **Методы:**
 - `AppState Load()` — загрузка настроек из JSON
 - `void Save(AppState state)` — сохранение настроек в JSON
 
-#### 2. Parser (`ParadoxLocalizationParser`)
+#### Parser (`ParadoxLocalizationParser`)
 Чтение и разбор `.yml` файлов.
 
 **Методы:**
 - `LocalizationFile ParseFile(string filePath)`
 - `List<LocalizationFile> ParseDirectory(string directoryPath)`
 
-#### 3. Storage (`LocalizationStorage`)
-Хранилище загруженных локализаций.
+#### Analysis (`MissingKeysAnalyzer`)
+Анализ orphaned и duplicate ключей.
 
 **Методы:**
-- `void AddFile(LocalizationFile file)`
-- `void AddFiles(IEnumerable<LocalizationFile> files)`
-- `LocalizationEntry? GetEntry(string key)`
-- `bool ContainsKey(string key)`
-- `ImmutableHashSet<string> GetAllKeys()`
-- `string? GetSourceFile(string key)`
+- `TranslationAnalysisResult AnalyzeTranslation(LocalizationStorage source, LocalizationStorage translation)`
 
-#### 4. Comparison (`LocalizationComparer`)
-Сравнение двух наборов локализаций.
-
-**Результат:**
-```
-ComparisonResult
-├── Added: List<KeyWithSource>
-├── Removed: List<KeyWithSource>
-├── Modified: List<Modification>
-└── Unchanged: List<string>
-```
-
-#### 5. Analysis (`MissingKeysAnalyzer`)
-Анализ отсутствующих ключей перевода.
-
-**Результат:**
-```
-MissingKeysResult
-├── MissingKeys: List<MissingKeyInfo>
-├── TotalSourceKeys: int
-├── TranslatedKeys: int
-├── TotalSourceCharacters: int
-├── TranslatedCharacters: int
-└── TranslationPercentageByCharacters: double
-```
-
-#### 6. Reporting (`ReportGenerator`)
-Генерация отчётов в различных форматах (PlainText, Markdown, JSON).
-
-**Методы:**
-- `string GenerateComparisonReport(ComparisonResult result, ReportFormat format, List<WrittenFileInfo>? writtenFiles)`
-- `string GenerateMissingKeysReport(MissingKeysResult result, ReportFormat format, List<WrittenFileInfo>? writtenFiles)`
-
-#### 7. YML Writer (`LocalizationYmlWriter`)
+#### YML Writer (`LocalizationYmlWriter`)
 Запись локализаций в YML-файлы.
 
 **Методы:**
-- `List<WrittenFileInfo> WriteDeltaYmlFiles(ComparisonResult result, string outputDirectory, string language, IEnumerable<LocalizationFile> newVersionFiles)` — запись дельты по файлам в папку
-- `List<WrittenFileInfo> WriteMissingKeysYmlFiles(MissingKeysResult result, string outputDirectory, string language, IEnumerable<LocalizationFile> newVersionFiles)` — запись недостающих ключей по файлам в папку
+- `List<WrittenFileInfo> WriteStorage(LocalizationStorage storage, string outputDirectory, string language)` — запись хранилища по файлам
 - `void WriteFiles(IEnumerable<LocalizationFile> files, string outputDirectory)` — запись объединённых файлов
 
-#### 8. Merging (`LocalizationMerger`)
+#### Merging (`LocalizationMerger`)
 Слияние устаревшего перевода с обновлением.
 
 **Метод:**
 - `List<LocalizationFile> Merge(LocalizationStorage oldTranslation, LocalizationStorage newTranslation, LocalizationStorage newVersion, string targetLanguage)`
 
-#### 9. CLI (`ConsoleMenuService`)
+#### CLI (`ConsoleMenu`, `MenuItem`, `ConsoleMenuService`)
 Интерактивное консольное меню.
-
-**Методы:**
-- `int ShowMainMenu()`
-- `string ReadFolderPath(string prompt)`
-- `string ReadLanguage(string currentValue)`
-- `string ReadOutputFolderName()`
-- `void ShowSuccess(string message)`
-- `void ShowError(string message)`
 
 ---
 
@@ -298,25 +310,25 @@ src/
 ├── Configuration/
 │   └── ConfigurationService.cs  # Управление настройками
 ├── Cli/
-│   └── ConsoleMenuService.cs    # Интерактивное меню
+│   ├── ConsoleMenu.cs           # Меню с пунктами
+│   ├── MenuItem.cs              # Пункт меню
+│   ├── MenuActions.cs           # Действия пунктов меню
+│   └── ConsoleMenuService.cs    # Утилиты консоли
 ├── Parsing/
 │   └── ParadoxLocalizationParser.cs
 ├── Storage/
-│   └── LocalizationStorage.cs
-├── Comparison/
-│   ├── Models/
-│   │   ├── ComparisonResult.cs
-│   │   ├── KeyWithSource.cs
-│   │   └── Modification.cs
-│   └── LocalizationComparer.cs
+│   └── LocalizationStorage.cs   # Хранилище с операциями над множествами
 ├── Analysis/
 │   ├── Models/
+│   │   ├── DuplicateKeyInfo.cs
 │   │   ├── MissingKeyInfo.cs
-│   │   └── MissingKeysResult.cs
+│   │   ├── MissingKeysResult.cs
+│   │   ├── OrphanedKeyInfo.cs
+│   │   └── TranslationAnalysisResult.cs
 │   └── MissingKeysAnalyzer.cs
 ├── Reporting/
-│   ├── ReportFormat.cs
-│   └── ReportGenerator.cs
+│   ├── MarkdownTableBuilder.cs  # Построитель markdown-таблиц
+│   └── ReportGenerator.cs       # Генератор отчётов
 ├── Yml/
 │   ├── LocalizationYmlWriter.cs # Запись YML-файлов
 │   └── WrittenFileInfo.cs       # Информация о созданном файле
@@ -332,59 +344,50 @@ src/
 using ParadoxLocalisationHelper.Configuration;
 using ParadoxLocalisationHelper.Parsing;
 using ParadoxLocalisationHelper.Storage;
-using ParadoxLocalisationHelper.Comparison;
-using ParadoxLocalisationHelper.Analysis;
+using ParadoxLocalisationHelper.Reporting;
 using ParadoxLocalisationHelper.Yml;
 using ParadoxLocalisationHelper.Merging;
-using ParadoxLocalisationHelper.Reporting;
 
 // Загрузка настроек
 ConfigurationService configService = new("config.json");
 AppState state = configService.Load();
 
-// Загрузка версий
+// Загрузка данных
 ParadoxLocalizationParser parser = new();
-LocalizationStorage oldStorage = new();
-oldStorage.AddFiles(parser.ParseDirectory(@"mod\v1.0"));
-LocalizationStorage newStorage = new();
-newStorage.AddFiles(parser.ParseDirectory(@"mod\v2.0"));
-List<LocalizationFile> newFiles = parser.ParseDirectory(@"mod\v2.0");
-
-// Сравнение версий
-LocalizationComparer comparer = new();
-ComparisonResult changes = comparer.Compare(oldStorage, newStorage);
-
-// Запись дельты в папку с YML-файлами
-LocalizationYmlWriter ymlWriter = new();
-List<WrittenFileInfo> writtenFiles = ymlWriter.WriteDeltaYmlFiles(
-    changes, @"output\delta", "english", newFiles);
-
-// Генерация отчёта с информацией о файлах
-string report = ReportGenerator.GenerateComparisonReport(
-    changes, ReportFormat.Markdown, writtenFiles);
-File.WriteAllText("report.md", report);
-
-// Анализ недостающих переводов
-LocalizationStorage translation = new();
-translation.AddFiles(parser.ParseDirectory(@"translation\current"));
-MissingKeysResult missing = MissingKeysAnalyzer.FindMissingKeys(newStorage, translation);
-
-// Запись недостающих ключей в папку
-List<WrittenFileInfo> missingFiles = ymlWriter.WriteMissingKeysYmlFiles(
-    missing, @"output\missing", "english", newFiles);
-
-// Слияние переводов
+LocalizationStorage oldVersion = new();
+oldVersion.AddFiles(parser.ParseDirectory(@"mod\v1.0"));
+LocalizationStorage newVersion = new();
+newVersion.AddFiles(parser.ParseDirectory(@"mod\v2.0"));
 LocalizationStorage oldTranslation = new();
 oldTranslation.AddFiles(parser.ParseDirectory(@"translation\old"));
-LocalizationStorage newTranslation = new();
-newTranslation.AddFiles(parser.ParseDirectory(@"translation\update"));
+LocalizationStorage translationUpdate = new();
+translationUpdate.AddFiles(parser.ParseDirectory(@"translation\update"));
 
+// Анализ и отчёт
+ReportGenerator generator = new()
+{
+    OldVersion = oldVersion,
+    NewVersion = newVersion,
+    OldTranslation = oldTranslation,
+    TranslationUpdate = translationUpdate
+};
+string reportPath = generator.Generate();
+
+// Генерация YML с оставшейся работой
+if (!generator.WorkRemaining.IsEmpty)
+{
+    LocalizationYmlWriter ymlWriter = new();
+    ymlWriter.WriteStorage(generator.WorkRemaining, @"output\todo", "english");
+}
+
+// Слияние переводов
 LocalizationMerger merger = new();
 List<LocalizationFile> merged = merger.Merge(
-    oldTranslation, newTranslation, newStorage, "russian");
+    oldTranslation, translationUpdate, newVersion, "russian");
 
 // Сохранение результата
-ymlWriter.WriteFiles(merged, @"translation\merged");
+LocalizationYmlWriter writer = new();
+writer.WriteFiles(merged, @"translation\merged");
 
 // Сохранение настроек
 configService.Save(state);

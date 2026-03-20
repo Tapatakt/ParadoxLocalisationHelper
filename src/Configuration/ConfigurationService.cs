@@ -60,7 +60,7 @@ public sealed class ConfigurationService
             NewVersionPath = state.NewVersionPath,
             OldVersionPath = state.OldVersionPath,
             OldTranslationPath = state.OldTranslationPath,
-            NewTranslationPath = state.NewTranslationPath,
+            NewTranslationPath = state.TranslationUpdatePath,
             SourceLanguage = state.SourceLanguage,
             TargetLanguage = state.TargetLanguage
         };
@@ -71,7 +71,7 @@ public sealed class ConfigurationService
             NewVersionPath = dto.NewVersionPath ?? "",
             OldVersionPath = dto.OldVersionPath ?? "",
             OldTranslationPath = dto.OldTranslationPath ?? "",
-            NewTranslationPath = dto.NewTranslationPath ?? "",
+            TranslationUpdatePath = dto.NewTranslationPath ?? "",
             SourceLanguage = dto.SourceLanguage ?? "english",
             TargetLanguage = dto.TargetLanguage ?? "russian"
         };

@@ -32,11 +32,13 @@ public sealed partial class ParadoxLocalizationParser
             throw new FileNotFoundException("Localization file not found", filePath);
 
         string content = ReadFileWithBomHandling(filePath);
-        string[] lines = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = [..content
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && line[0] != '#')]; // Игнорируем комментарии
 
         if (lines.Length == 0)
             throw new InvalidDataException("Empty localization file");
-
         string language = ParseLanguageTag(lines[0]);
         List<LocalizationEntry> entries = [];
 
@@ -82,8 +84,9 @@ public sealed partial class ParadoxLocalizationParser
                 LocalizationFile parsed = ParseFile(file);
                 result.Add(parsed);
             }
-            catch (InvalidDataException)
+            catch (InvalidDataException e)
             {
+                Console.WriteLine($"{file}: {e.Message}");
                 // Skip files that don't have valid language tag
                 continue;
             }

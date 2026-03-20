@@ -5,22 +5,30 @@ namespace ParadoxLocalisationHelper.Analysis.Models;
 /// <summary>
 /// Result of analyzing missing translation keys.
 /// </summary>
-public sealed class MissingKeysResult
+/// <remarks>
+/// Initializes a new instance of the <see cref="MissingKeysResult"/> class.
+/// </remarks>
+public sealed class MissingKeysResult(
+    IEnumerable<MissingKeyInfo> missingKeys,
+    int totalSourceKeys,
+    int translatedKeys,
+    int totalSourceCharacters,
+    int translatedCharacters)
 {
     /// <summary>
     /// List of keys that are missing from the translation.
     /// </summary>
-    public ImmutableList<MissingKeyInfo> MissingKeys { get; }
+    public ImmutableList<MissingKeyInfo> MissingKeys { get; } = missingKeys.ToImmutableList();
 
     /// <summary>
     /// Total number of keys in the source.
     /// </summary>
-    public int TotalSourceKeys { get; }
+    public int TotalSourceKeys { get; } = totalSourceKeys;
 
     /// <summary>
     /// Number of translated keys.
     /// </summary>
-    public int TranslatedKeys { get; }
+    public int TranslatedKeys { get; } = translatedKeys;
 
     /// <summary>
     /// Number of missing keys.
@@ -36,12 +44,12 @@ public sealed class MissingKeysResult
     /// <summary>
     /// Total number of characters in source values.
     /// </summary>
-    public int TotalSourceCharacters { get; }
+    public int TotalSourceCharacters { get; } = totalSourceCharacters;
 
     /// <summary>
     /// Number of characters in translated values.
     /// </summary>
-    public int TranslatedCharacters { get; }
+    public int TranslatedCharacters { get; } = translatedCharacters;
 
     /// <summary>
     /// Number of characters in missing values.
@@ -53,21 +61,4 @@ public sealed class MissingKeysResult
     /// </summary>
     public double TranslationPercentageByCharacters =>
         TotalSourceCharacters == 0 ? 0 : (double)TranslatedCharacters / TotalSourceCharacters * 100;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MissingKeysResult"/> class.
-    /// </summary>
-    public MissingKeysResult(
-        IEnumerable<MissingKeyInfo> missingKeys,
-        int totalSourceKeys,
-        int translatedKeys,
-        int totalSourceCharacters,
-        int translatedCharacters)
-    {
-        MissingKeys = missingKeys.ToImmutableList();
-        TotalSourceKeys = totalSourceKeys;
-        TranslatedKeys = translatedKeys;
-        TotalSourceCharacters = totalSourceCharacters;
-        TranslatedCharacters = translatedCharacters;
-    }
 }

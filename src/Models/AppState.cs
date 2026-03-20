@@ -23,7 +23,7 @@ public sealed class AppState
     /// <summary>
     /// Path to the folder containing the translation update.
     /// </summary>
-    public string NewTranslationPath { get; set; } = string.Empty;
+    public string TranslationUpdatePath { get; set; } = string.Empty;
 
     /// <summary>
     /// The source/original language code (e.g., "english").
@@ -53,5 +53,5 @@ public sealed class AppState
     /// <summary>
     /// Gets a value indicating whether new translation path is set.
     /// </summary>
-    public bool HasNewTranslation => !string.IsNullOrEmpty(NewTranslationPath);
+    public bool HasNewTranslation => !string.IsNullOrEmpty(TranslationUpdatePath);
 }

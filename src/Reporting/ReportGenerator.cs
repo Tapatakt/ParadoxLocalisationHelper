@@ -1,202 +1,275 @@
 using System.Text;
-using System.Text.Json;
 using ParadoxLocalisationHelper.Analysis.Models;
-using ParadoxLocalisationHelper.Comparison.Models;
-using ParadoxLocalisationHelper.Yml;
+using ParadoxLocalisationHelper.Models;
+using ParadoxLocalisationHelper.Storage;
 
 namespace ParadoxLocalisationHelper.Reporting;
 
 /// <summary>
-/// Generates reports in various formats.
+/// Generates translation reports based on loaded localization data.
 /// </summary>
-public static class ReportGenerator
+public sealed class ReportGenerator
 {
-    /// <summary>
-    /// Generates a comparison report.
-    /// </summary>
-    /// <param name="result">The comparison result.</param>
-    /// <param name="format">The output format.</param>
-    /// <param name="writtenFiles">Optional information about written YML files.</param>
-    /// <returns>Formatted report string.</returns>
-    public static string GenerateComparisonReport(
-        ComparisonResult result,
-        ReportFormat format,
-        List<WrittenFileInfo>? writtenFiles = null) =>
-        format switch
-        {
-            ReportFormat.PlainText => GenerateComparisonPlainText(result, writtenFiles),
-            ReportFormat.Markdown => GenerateComparisonMarkdown(result, writtenFiles),
-            ReportFormat.Json => GenerateComparisonJson(result),
-            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unknown format")
-        };
+    // Input storages
+    public required LocalizationStorage OldVersion { get; init; }
+    public required LocalizationStorage NewVersion { get; init; }
+    public required LocalizationStorage OldTranslation { get; init; }
+    public required LocalizationStorage TranslationUpdate { get; init; }
+
+    // Derived storages
+    public LocalizationStorage AddedKeys { get; private set; } = new();
+    public LocalizationStorage RemovedKeys { get; private set; } = new();
+    public LocalizationStorage ModifiedKeys { get; private set; } = new();
+    public LocalizationStorage MissingInOldTranslation { get; private set; } = new();
+    public LocalizationStorage WorkToDo { get; private set; } = new();
+    public LocalizationStorage WorkDone { get; private set; } = new();
+    public LocalizationStorage WorkRemaining { get; private set; } = new();
+    public LocalizationStorage UnnecessaryKeys { get; private set; } = new();
+
+    // Analysis results
+    public (int Count, List<DuplicateKeyInfo> Items) TranslationUpdateDuplicates { get; private set; }
+    public (int Count, List<DuplicateKeyInfo> Items) OldTranslationDuplicates { get; private set; }
 
     /// <summary>
-    /// Generates a missing keys report.
+    /// Performs analysis and generates the report.
     /// </summary>
-    /// <param name="result">The missing keys result.</param>
-    /// <param name="format">The output format.</param>
-    /// <param name="writtenFiles">Optional information about written YML files.</param>
-    /// <returns>Formatted report string.</returns>
-    public static string GenerateMissingKeysReport(
-        MissingKeysResult result,
-        ReportFormat format,
-        List<WrittenFileInfo>? writtenFiles = null) =>
-        format switch
-        {
-            ReportFormat.PlainText => GenerateMissingPlainText(result, writtenFiles),
-            ReportFormat.Markdown => GenerateMissingMarkdown(result, writtenFiles),
-            ReportFormat.Json => GenerateMissingJson(result),
-            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unknown format")
-        };
-
-    private static string GenerateComparisonPlainText(ComparisonResult result, List<WrittenFileInfo>? writtenFiles)
+    /// <returns>Path to the generated report file.</returns>
+    public string Generate()
     {
-        int addedChars = result.Added.Sum(k => k.Value.Length);
-        int removedChars = result.Removed.Sum(k => k.Value.Length);
-        int modifiedOldChars = result.Modified.Sum(m => m.OldValue.Length);
-        int modifiedNewChars = result.Modified.Sum(m => m.NewValue.Length);
-
-        StringBuilder sb = new();
-        sb.AppendLine("=== COMPARISON REPORT ===");
-        sb.AppendLine();
-        sb.AppendLine("By Key Count:");
-        sb.AppendLine($"  Added: {result.Added.Count}");
-        sb.AppendLine($"  Removed: {result.Removed.Count}");
-        sb.AppendLine($"  Modified: {result.Modified.Count}");
-        sb.AppendLine($"  Unchanged: {result.Unchanged.Count}");
-        sb.AppendLine($"  Total Changes: {result.TotalChanges}");
-        sb.AppendLine();
-        sb.AppendLine("By Character Count:");
-        sb.AppendLine($"  Added: {addedChars} chars");
-        sb.AppendLine($"  Removed: {removedChars} chars");
-        sb.AppendLine($"  Modified (old): {modifiedOldChars} chars");
-        sb.AppendLine($"  Modified (new): {modifiedNewChars} chars");
-
-        if (writtenFiles is not null && writtenFiles.Count > 0)
-        {
-            sb.AppendLine();
-            sb.AppendLine("Generated Files:");
-            foreach (WrittenFileInfo file in writtenFiles)
-                sb.AppendLine($"  {file.FileName}: {file.KeyCount} keys, {file.CharacterCount} chars");
-        }
-
-        return sb.ToString();
+        Analyze();
+        PrintSummary();
+        return GenerateReportFile();
     }
 
-    private static string GenerateComparisonMarkdown(ComparisonResult result, List<WrittenFileInfo>? writtenFiles)
+    private void Analyze()
     {
-        int addedChars = result.Added.Sum(k => k.Value.Length);
-        int removedChars = result.Removed.Sum(k => k.Value.Length);
-        int modifiedOldChars = result.Modified.Sum(m => m.OldValue.Length);
-        int modifiedNewChars = result.Modified.Sum(m => m.NewValue.Length);
+        // Version changes
+        AddedKeys = NewVersion.Except(OldVersion).SetName("Added Keys");
+        RemovedKeys = OldVersion.Except(NewVersion).SetName("Removed Keys");
+        ModifiedKeys = NewVersion.Modified(OldVersion).SetName("Modified Keys");
 
-        StringBuilder sb = new();
-        sb.AppendLine("# Comparison Report");
-        sb.AppendLine();
-        sb.AppendLine("## By Key Count");
-        sb.AppendLine();
-        sb.AppendLine("| Metric | Count |");
-        sb.AppendLine("|--------|-------|");
-        sb.AppendLine($"| Added | {result.Added.Count} |");
-        sb.AppendLine($"| Removed | {result.Removed.Count} |");
-        sb.AppendLine($"| Modified | {result.Modified.Count} |");
-        sb.AppendLine($"| Unchanged | {result.Unchanged.Count} |");
-        sb.AppendLine($"| **Total Changes** | **{result.TotalChanges}** |");
-        sb.AppendLine();
-        sb.AppendLine("## By Character Count");
-        sb.AppendLine();
-        sb.AppendLine("| Metric | Characters |");
-        sb.AppendLine("|--------|------------|");
-        sb.AppendLine($"| Added | {addedChars} |");
-        sb.AppendLine($"| Removed | {removedChars} |");
-        sb.AppendLine($"| Modified (old) | {modifiedOldChars} |");
-        sb.AppendLine($"| Modified (new) | {modifiedNewChars} |");
+        // Translation work
+        MissingInOldTranslation = OldVersion.Except(OldTranslation).SetName("Missing in Old Translation");
+        WorkToDo = AddedKeys.Union(ModifiedKeys).Union(MissingInOldTranslation).SetName("Work To Do");
+        WorkDone = WorkToDo.Intersect(TranslationUpdate).SetName("Work Done");
+        WorkRemaining = WorkToDo.Except(TranslationUpdate).SetName("Work Remaining");
+        UnnecessaryKeys = TranslationUpdate.Except(NewVersion).SetName("Unnecessary Keys");
 
-        if (writtenFiles is not null && writtenFiles.Count > 0)
-        {
-            sb.AppendLine();
-            sb.AppendLine("## Generated Files");
-            sb.AppendLine();
-            sb.AppendLine("| File | Keys | Characters |");
-            sb.AppendLine("|------|------|------------|");
-            foreach (WrittenFileInfo file in writtenFiles)
-                sb.AppendLine($"| {file.FileName} | {file.KeyCount} | {file.CharacterCount} |");
-        }
-
-        return sb.ToString();
+        // Duplicates analysis
+        TranslationUpdateDuplicates = FindDuplicates(TranslationUpdate);
+        OldTranslationDuplicates = FindDuplicates(OldTranslation);
     }
 
-    private static string GenerateComparisonJson(ComparisonResult result) =>
-        JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
-
-    private static string GenerateMissingPlainText(MissingKeysResult result, List<WrittenFileInfo>? writtenFiles)
+    private static (int Count, List<DuplicateKeyInfo> Items) FindDuplicates(LocalizationStorage storage)
     {
-        StringBuilder sb = new();
-        sb.AppendLine("=== MISSING TRANSLATION KEYS ===");
-        sb.AppendLine();
-        sb.AppendLine("By Key Count:");
-        sb.AppendLine($"  Total Source Keys: {result.TotalSourceKeys}");
-        sb.AppendLine($"  Translated: {result.TranslatedKeys}");
-        sb.AppendLine($"  Missing: {result.MissingCount}");
-        sb.AppendLine($"  Progress: {result.TranslationPercentageByCount:F1}%");
-        sb.AppendLine();
-        sb.AppendLine("By Character Count:");
-        sb.AppendLine($"  Total Source Characters: {result.TotalSourceCharacters}");
-        sb.AppendLine($"  Translated Characters: {result.TranslatedCharacters}");
-        sb.AppendLine($"  Missing Characters: {result.MissingCharacters}");
-        sb.AppendLine($"  Progress: {result.TranslationPercentageByCharacters:F1}%");
-
-        if (writtenFiles is not null && writtenFiles.Count > 0)
-        {
-            sb.AppendLine();
-            sb.AppendLine("Generated Files:");
-            foreach (WrittenFileInfo file in writtenFiles)
-                sb.AppendLine($"  {file.FileName}: {file.KeyCount} keys, {file.CharacterCount} chars");
-        }
-
-        return sb.ToString();
+        if (storage.IsEmpty)
+            return (0, []);
+        var result = Analysis.MissingKeysAnalyzer.AnalyzeTranslation(storage, storage);
+        return (result.DuplicateCount, result.DuplicateKeys);
     }
 
-    private static string GenerateMissingMarkdown(MissingKeysResult result, List<WrittenFileInfo>? writtenFiles)
+    private void PrintSummary()
     {
-        StringBuilder sb = new();
-        sb.AppendLine("# Missing Translation Keys");
-        sb.AppendLine();
-        sb.AppendLine("## Statistics by Key Count");
-        sb.AppendLine();
-        sb.AppendLine("| Metric | Value |");
-        sb.AppendLine("|--------|-------|");
-        sb.AppendLine($"| Total Source Keys | {result.TotalSourceKeys} |");
-        sb.AppendLine($"| Translated | {result.TranslatedKeys} |");
-        sb.AppendLine($"| Missing | {result.MissingCount} |");
-        sb.AppendLine($"| Progress | {result.TranslationPercentageByCount:F1}% |");
-        sb.AppendLine();
-        sb.AppendLine("## Statistics by Character Count");
-        sb.AppendLine();
-        sb.AppendLine("| Metric | Value |");
-        sb.AppendLine("|--------|-------|");
-        sb.AppendLine($"| Total Source Characters | {result.TotalSourceCharacters} |");
-        sb.AppendLine($"| Translated Characters | {result.TranslatedCharacters} |");
-        sb.AppendLine($"| Missing Characters | {result.MissingCharacters} |");
-        sb.AppendLine($"| Progress | {result.TranslationPercentageByCharacters:F1}% |");
+        Console.WriteLine();
+        Console.WriteLine("=== Сводка ===");
+        Console.WriteLine();
 
-        if (writtenFiles is not null && writtenFiles.Count > 0)
+        if (!AddedKeys.IsEmpty || !RemovedKeys.IsEmpty || !ModifiedKeys.IsEmpty)
         {
-            sb.AppendLine();
-            sb.AppendLine("## Generated Files");
-            sb.AppendLine();
-            sb.AppendLine("| File | Keys | Characters |");
-            sb.AppendLine("|------|------|------------|");
-            foreach (WrittenFileInfo file in writtenFiles)
-                sb.AppendLine($"| {file.FileName} | {file.KeyCount} | {file.CharacterCount} |");
+            Console.WriteLine("Изменения в версии:");
+            Console.WriteLine($"  Добавлено: {AddedKeys.KeyCount}");
+            Console.WriteLine($"  Удалено: {RemovedKeys.KeyCount}");
+            Console.WriteLine($"  Изменено: {ModifiedKeys.KeyCount}");
+            Console.WriteLine();
         }
 
-        return sb.ToString();
+        if (!WorkToDo.IsEmpty)
+        {
+            int remaining = WorkRemaining.KeyCount;
+            double percent = WorkToDo.KeyCount == 0 ? 100 : (double)WorkDone.KeyCount / WorkToDo.KeyCount * 100;
+            Console.WriteLine("Работа по переводу:");
+            Console.WriteLine($"  Всего требуется: {WorkToDo.KeyCount}");
+            Console.WriteLine($"  Сделано: {WorkDone.KeyCount} ({percent:F1}%)");
+            Console.WriteLine($"  Осталось: {remaining}");
+            Console.WriteLine();
+        }
+
+        if (TranslationUpdateDuplicates.Count > 0)
+            Console.WriteLine($"⚠ Дубликаты в обновлении: {TranslationUpdateDuplicates.Count}");
+        if (OldTranslationDuplicates.Count > 0)
+            Console.WriteLine($"⚠ Дубликаты в устаревшем переводе: {OldTranslationDuplicates.Count}");
+        if (!UnnecessaryKeys.IsEmpty)
+            Console.WriteLine($"⚠ Лишние ключи в обновлении: {UnnecessaryKeys.KeyCount}");
     }
 
-    private static string GenerateMissingJson(MissingKeysResult result) =>
-        JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
+    private string GenerateReportFile()
+    {
+        StringBuilder report = new();
+        report.AppendLine("# Translation Report");
+        report.AppendLine();
 
-    private static string EscapeMarkdown(string value) =>
-        value.Replace("|", "\\|").Replace("\n", " ").Replace("\r", "");
+        // Main table with all storages
+        report.AppendLine("## Overview by File");
+        report.AppendLine();
+        report.AppendLine(GenerateStorageTable(
+            OldVersion, NewVersion, OldTranslation, TranslationUpdate,
+            AddedKeys, RemovedKeys, ModifiedKeys,
+            MissingInOldTranslation, WorkToDo, WorkDone, WorkRemaining));
+        report.AppendLine();
+
+
+
+        // Section: Duplicates
+        if (TranslationUpdateDuplicates.Count > 0 || OldTranslationDuplicates.Count > 0)
+        {
+            report.AppendLine("## Duplicate Keys");
+            report.AppendLine();
+
+            if (TranslationUpdateDuplicates.Count > 0)
+            {
+                report.AppendLine($"### In Translation Update ({TranslationUpdateDuplicates.Count})");
+                report.AppendLine();
+                MarkdownTableBuilder dupTable = new();
+                dupTable.AddHeader("Key", "Count", "Files");
+                dupTable.AddRowsWithLimit(
+                    TranslationUpdateDuplicates.Items,
+                    d => new object?[]
+                    {
+                        $"`{d.Key}`",
+                        d.OccurrenceCount,
+                        string.Join(", ", d.Files.Select(f => Path.GetFileName(f)))
+                    },
+                    20,
+                    TranslationUpdateDuplicates.Count,
+                    "*and {0} more*");
+                report.AppendLine(dupTable.Build());
+                report.AppendLine();
+            }
+
+            if (OldTranslationDuplicates.Count > 0)
+            {
+                report.AppendLine($"### In Old Translation ({OldTranslationDuplicates.Count})");
+                report.AppendLine();
+                MarkdownTableBuilder dupTable = new();
+                dupTable.AddHeader("Key", "Count", "Files");
+                dupTable.AddRowsWithLimit(
+                    OldTranslationDuplicates.Items,
+                    d => new object?[]
+                    {
+                        $"`{d.Key}`",
+                        d.OccurrenceCount,
+                        string.Join(", ", d.Files.Select(f => Path.GetFileName(f)))
+                    },
+                    20,
+                    OldTranslationDuplicates.Count,
+                    "*and {0} more*");
+                report.AppendLine(dupTable.Build());
+                report.AppendLine();
+            }
+        }
+
+        // Section: Unnecessary Keys
+        if (!UnnecessaryKeys.IsEmpty)
+        {
+            report.AppendLine($"## Unnecessary Keys ({UnnecessaryKeys.KeyCount})");
+            report.AppendLine();
+            report.AppendLine("Keys present in translation update but not in new version:");
+            report.AppendLine();
+            MarkdownTableBuilder unnTable = new();
+            unnTable.AddHeader("Key", "File");
+            foreach (LocalizationFile file in UnnecessaryKeys.Files.Values)
+            {
+                foreach (LocalizationEntry entry in file.Entries)
+                {
+                    unnTable.AddRow($"`{entry.Key}`", file.FileName);
+                }
+            }
+            report.AppendLine(unnTable.Build());
+            report.AppendLine();
+        }
+
+        if (WorkRemaining.IsEmpty && !WorkToDo.IsEmpty)
+        {
+            report.AppendLine("## 🎉 All work completed!");
+            report.AppendLine();
+            report.AppendLine("No remaining translation work.");
+        }
+
+        string reportPath = $"translation_report_{DateTime.Now:yyyyMMdd_HHmmss}.md";
+        File.WriteAllText(reportPath, report.ToString());
+        return reportPath;
+    }
+
+    /// <summary>
+    /// Generates a markdown table showing statistics for multiple storages by file.
+    /// </summary>
+    private static string GenerateStorageTable(params LocalizationStorage[] storages)
+    {
+        if (storages.Length == 0)
+            return string.Empty;
+
+        // Collect all unique base file names (without language tag)
+        HashSet<string> allBaseNames = [];
+        foreach (LocalizationStorage storage in storages)
+            foreach (LocalizationFile file in storage.Files.Values)
+                allBaseNames.Add(GetBaseFileName(file.FileName));
+
+        List<string> baseNames = allBaseNames.OrderBy(f => f).ToList();
+
+        // Build table
+        MarkdownTableBuilder table = new();
+
+        // Header: File + storage names
+        List<string> headers = ["File", .. storages.Select(s => s.Name)];
+        table.AddHeader([.. headers]);
+
+        // Data rows
+        foreach (string baseName in baseNames)
+        {
+            List<string> rowValues = [baseName];
+            foreach (LocalizationStorage storage in storages)
+            {
+                var matchingFiles = storage.Files.Values.Where(f => GetBaseFileName(f.FileName) == baseName).ToList();
+                int keyCount = matchingFiles.Sum(f =>
+                {
+                    (int count, _) = storage.GetFileStats(f.FilePath);
+                    return count;
+                });
+                int totalChars = matchingFiles.Sum(f =>
+                {
+                    (_, int chars) = storage.GetFileStats(f.FilePath);
+                    return chars;
+                });
+                rowValues.Add(keyCount > 0 ? $"{keyCount}/{totalChars}" : "-");
+            }
+            table.AddRow([.. rowValues]);
+        }
+
+        // Totals row
+        List<string> totalRow = ["**Total**"];
+        foreach (LocalizationStorage storage in storages)
+        {
+            int totalKeys = storage.KeyCount;
+            int totalChars = storage.Entries.Values.Sum(e => e.Value.Length);
+            totalRow.Add($"**{totalKeys}/{totalChars}**");
+        }
+        table.AddRow([.. totalRow]);
+
+        return table.Build();
+    }
+
+    /// <summary>
+    /// Gets base file name with language tag replaced by *.
+    /// </summary>
+    private static string GetBaseFileName(string fileName)
+    {
+        int langIndex = fileName.LastIndexOf("l_", StringComparison.OrdinalIgnoreCase);
+        if (langIndex >= 0)
+        {
+            int dotIndex = fileName.LastIndexOf('.');
+            if (dotIndex > langIndex + 2)
+                return fileName[..(langIndex + 2)] + "*" + fileName[dotIndex..];
+        }
+        return fileName;
+    }
 }
