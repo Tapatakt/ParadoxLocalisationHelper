@@ -1,6 +1,6 @@
 # Paradox Localisation Helper
 
-> **Навайбкожено с Kimi K2.5, но сильно отредактироваонно**
+> **Навайбкожено с Kimi K2.5, но сильно отредактировано**
 
 Инструмент для работы с файлами локализации модов к играм Paradox Interactive (Stellaris, Crusader Kings, Europa Universalis, Hearts of Iron и др.; тестировалось на моде на Stellaris).
 
