@@ -120,7 +120,8 @@ public sealed partial class ParadoxLocalizationParser
             throw new InvalidDataException($"Invalid language tag: {trimmed}");
 
         int colonIndex = trimmed.IndexOf(':');
-        return trimmed[1..colonIndex];
+        string language = trimmed[1..colonIndex].TrimStart('_');
+        return language;
     }
 
     /// <summary>
